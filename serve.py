@@ -33,14 +33,26 @@ def save_prefs(data: dict) -> dict:
     return cur
 
 
-def safe_dir(raw: str) -> Path:
+def resolve_dir(raw: str, create: bool = False) -> Path:
     if not raw or not str(raw).strip():
         raise ValueError("empty path")
-    p = Path(raw).expanduser()
-    p = p.resolve()
+    text = str(raw).strip().strip('"')
+    p = Path(text).expanduser()
+    if not p.is_absolute():
+        p = ROOT / "output" / p
+    if create:
+        p.mkdir(parents=True, exist_ok=True)
+    try:
+        p = p.resolve()
+    except Exception as exc:
+        raise ValueError(f"cannot resolve path: {exc}") from exc
     if not p.exists() or not p.is_dir():
-        raise ValueError("not a directory")
+        raise ValueError(f"not a directory: {p}")
     return p
+
+
+def safe_dir(raw: str) -> Path:
+    return resolve_dir(raw, create=False)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -130,7 +142,7 @@ class Handler(SimpleHTTPRequestHandler):
                 q = parse_qs(urlparse(self.path).query)
                 directory = (q.get("dir") or [self.headers.get("X-Dir") or ""])[0]
                 name = (q.get("name") or [self.headers.get("X-Name") or ""])[0]
-                folder = safe_dir(directory)
+                folder = resolve_dir(directory, create=True)
                 name = Path(name).name
                 if not name or name in {".", ".."}:
                     raise ValueError("bad file name")

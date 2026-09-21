@@ -1,4 +1,4 @@
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.1";
 const PREF_KEY = "ncm.studio.prefs";
 const IDB_NAME = "ncm-studio";
 const LAST = 3;
@@ -535,6 +535,45 @@ async function writeToDir(name, bytes) {
   await writeToHandle(state.dirHandle, name, bytes);
 }
 
+async function apiWrite(dir, name, bytes) {
+  const res = await fetch("/api/write?dir=" + encodeURIComponent(dir) + "&name=" + encodeURIComponent(name), {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: bytes
+  });
+  let data = {};
+  try { data = await res.json(); } catch (_) {}
+  if (!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
+  return data.path || dir;
+}
+
+function looksLikeDiskPath(p) {
+  if (!p) return false;
+  return /^[a-zA-Z]:[\\/]/.test(p) || p.startsWith("/") || p.startsWith("\\\\") || /[\\/]/.test(p);
+}
+
+async function saveConverted(dumped) {
+  const exportPath = document.getElementById("exportView").value.trim() || state.exportPath;
+  if (state.exportHandle) {
+    await writeToHandle(state.exportHandle, dumped.fileName, dumped.audio);
+    return { written: true, action: t("wrote"), path: exportPath || state.exportHandle.name };
+  }
+  if (state.api && exportPath) {
+    try {
+      const path = await apiWrite(exportPath, dumped.fileName, dumped.audio);
+      return { written: true, action: t("wrote"), path };
+    } catch (e) {
+      logLine("write: " + (e.message || e));
+    }
+  }
+  if (state.dirHandle) {
+    await writeToDir(dumped.fileName, dumped.audio);
+    return { written: true, action: t("wrote"), path: state.dirName };
+  }
+  downloadBlob(dumped.fileName, dumped.audio);
+  return { written: false, action: t("downloaded"), path: "" };
+}
+
 async function writeToHandle(dirHandle, name, bytes) {
   const fh = await dirHandle.getFileHandle(name, { create: true });
   const w = await fh.createWritable();
@@ -597,31 +636,10 @@ async function runConvert() {
       }
       let dumped = await NcmDump.dumpBuffer(buf, item.name, { writeMeta });
       dumped = await applyOutputFormat(dumped, fmt);
-      let action = t("downloaded");
-      const exportPath = document.getElementById("exportView").value.trim() || state.exportPath;
-      if (state.api && exportPath) {
-        await fetch("/api/write?dir=" + encodeURIComponent(exportPath) + "&name=" + encodeURIComponent(dumped.fileName), {
-          method: "POST",
-          headers: { "Content-Type": "application/octet-stream" },
-          body: dumped.audio
-        }).then(async (res) => {
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.error || "write");
-        });
-        action = t("wrote");
-        dumped.written = true;
-      } else if (state.exportHandle) {
-        await writeToHandle(state.exportHandle, dumped.fileName, dumped.audio);
-        action = t("wrote");
-        dumped.written = true;
-      } else if (state.dirHandle) {
-        await writeToDir(dumped.fileName, dumped.audio);
-        action = t("wrote");
-        dumped.written = true;
-      } else {
-        downloadBlob(dumped.fileName, dumped.audio);
-        dumped.written = false;
-      }
+      const saved = await saveConverted(dumped);
+      dumped.written = saved.written;
+      dumped.savedPath = saved.path;
+      const action = saved.action;
       let removed = false;
       if (del) removed = await removeSource(item);
       document.getElementById("st-" + i).className = "st ok";
