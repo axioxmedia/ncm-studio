@@ -1,6 +1,6 @@
 # NCM Studio
 
-**Packed via Axiox Media**
+**Packed via Axiox Media** 
 
 A local, browser-only wizard that decrypts `.ncm` containers and writes the original MP3 or FLAC payload.
 
