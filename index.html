@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NCM Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">N</div>
+        <div>
+          <h1 data-i18n="appTitle">NCM Studio</h1>
+          <p data-i18n="appSubtitle">批量解密网易云 NCM，输出原声 MP3 / FLAC</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="lang-switch" id="uiLangSwitch">
+          <button type="button" data-ui-lang="zh">中文</button>
+          <button type="button" data-ui-lang="en">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="banner" id="ctxBanner" hidden></div>
+    <nav class="steps" id="stepNav"></nav>
+
+    <section class="workspace">
+      <article class="wizard-card on" id="stage0">
+        <div class="kicker">Step 01</div>
+        <h2 data-i18n="s0Title">选择来源</h2>
+        <p class="lead" data-i18n="s0Lead">可一次勾选多个 NCM 文件，或授权一个目录并扫描其中全部 NCM。</p>
+        <div class="mode-grid">
+          <button type="button" class="mode on" id="modeFiles">
+            <b data-i18n="modeFiles">批量选择文件</b>
+            <span data-i18n="modeFilesHint">使用系统文件框，适合零散曲目。</span>
+          </button>
+          <button type="button" class="mode" id="modeFolder">
+            <b data-i18n="modeFolder">指定目录</b>
+            <span data-i18n="modeFolderHint">授权文件夹后可写回同目录，并允许删除源文件。</span>
+          </button>
+        </div>
+        <label data-i18n="pathLabel">源目录路径</label>
+        <div class="field">
+          <span>📁</span>
+          <input id="pathView" type="text" placeholder="D:\Music\ncm" />
+          <button type="button" class="soft" id="scanBtn" data-i18n="scan">扫描</button>
+          <button type="button" class="soft" id="pickBtn" data-i18n="browse">浏览</button>
+        </div>
+        <p class="hint" id="sourceHint"></p>
+        <input id="fileInput" type="file" accept=".ncm,audio/ncm" multiple hidden />
+        <div class="actions">
+          <button type="button" class="primary" id="next0" data-i18n="next" disabled>下一步</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage1">
+        <div class="kicker">Step 02</div>
+        <h2 data-i18n="s1Title">转换选项</h2>
+        <p class="lead" data-i18n="s1Lead">先解密容器，再选择输出封装。原格式保持内嵌编码；WAV 为解码后的 PCM。</p>
+        <div class="fmt-grid" id="fmtGrid">
+          <label class="mode fmt on"><input type="radio" name="fmt" value="original" checked /><b data-i18n="fmtOrig">原格式</b><span data-i18n="fmtOrigHint">按容器内的 MP3 / FLAC 直接写出</span></label>
+          <label class="mode fmt"><input type="radio" name="fmt" value="mp3" /><b>MP3</b><span data-i18n="fmtMp3Hint">源为 MP3 时原样保存；源为 FLAC 时请改用 WAV</span></label>
+          <label class="mode fmt"><input type="radio" name="fmt" value="wav" /><b>WAV</b><span data-i18n="fmtWavHint">解码为 16-bit PCM，剪辑软件时间轴更稳</span></label>
+        </div>
+        <div class="opt-grid">
+          <label class="check">
+            <input type="checkbox" id="optMeta" checked />
+            <div>
+              <b data-i18n="optMeta">写入标题 / 艺术家 / 专辑</b>
+              <span data-i18n="optMetaHint">在尚未带标签的 MP3 前写入 ID3v2。</span>
+            </div>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="optRemember" checked />
+            <div>
+              <b data-i18n="optRemember">记住本次选择</b>
+              <span data-i18n="optRememberHint">下次打开时恢复来源方式、目录授权与选项。</span>
+            </div>
+          </label>
+        </div>
+        <label data-i18n="exportLabel">导出目录</label>
+        <div class="field">
+          <span>💾</span>
+          <input id="exportView" type="text" placeholder="D:\Music\out" />
+          <button type="button" class="soft" id="pickExportBtn" data-i18n="browse">浏览</button>
+        </div>
+        <p class="hint" data-i18n="exportHint">与源目录分开记忆。本地服务模式下可直接填写磁盘路径。</p>
+        <label class="check danger">
+          <input type="checkbox" id="optDelete" />
+          <div>
+            <b data-i18n="optDelete">转换成功后删除源目录中的 NCM</b>
+            <span data-i18n="optDeleteHint">默认关闭。仅在已授权可写目录时生效；文件选择模式无法删除原件。</span>
+          </div>
+        </label>
+        <p class="hint" id="optHint"></p>
+        <div class="actions">
+          <button type="button" class="ghost" id="back1" data-i18n="back">上一步</button>
+          <button type="button" class="primary" id="next1" data-i18n="next">下一步</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage2">
+        <div class="kicker">Step 03</div>
+        <h2 data-i18n="s2Title">确认并转换</h2>
+        <p class="lead" id="listLead"></p>
+        <div class="list" id="fileList"></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="log" id="log"></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="back2" data-i18n="back">上一步</button>
+          <button type="button" class="primary" id="runBtn" data-i18n="run">开始转换</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage3">
+        <div class="kicker">Step 04</div>
+        <h2 data-i18n="s3Title">完成</h2>
+        <p class="lead" id="doneLead"></p>
+        <div class="list" id="resultList"></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="againBtn" data-i18n="again">再转一批</button>
+          <button type="button" class="primary" id="dlBtn" data-i18n="downloadAll">下载未写入的文件</button>
+        </div>
+      </article>
+    </section>
+  </main>
+  <div class="footer" id="appVersion">v1.0.0</div>
+  <script src="ncm.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
