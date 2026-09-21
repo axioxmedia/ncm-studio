@@ -2,7 +2,7 @@
 
 **Packed via Axiox Media**
 
-A local, browser-only wizard that decrypts NetEase Cloud Music `.ncm` containers and writes the original MP3 or FLAC payload.
+A local, browser-only wizard that decrypts `.ncm` containers and writes the original MP3 or FLAC payload.
 
 [中文说明](README.zh.md)
 
